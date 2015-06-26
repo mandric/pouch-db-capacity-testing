@@ -1,0 +1,38 @@
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+	dependencies {
+		classpath 'com.android.tools.build:gradle:1.2.3'
+	}
+}
+
+apply plugin: 'android'
+
+repositories {
+	mavenLocal()
+	mavenCentral()
+}
+
+android {
+	compileSdkVersion 'Google Inc.:Google APIs:22'
+	buildToolsVersion '22.0.1'
+	packagingOptions {
+		exclude 'META-INF/LICENSE'
+		exclude 'META-INF/NOTICE'
+	}
+
+	buildTypes {
+		release {
+			minifyEnabled false
+			proguardFile getDefaultProguardFile('proguard-android.txt')
+			signingConfig signingConfigs.debug
+		}
+	}
+
+	applicationVariants.all {
+		buildConfigField "String", "TEST_URL",
+				(System.env.TEST_URL ?: '"http://10.0.2.2:8080/index.html"')
+
+	}
+}

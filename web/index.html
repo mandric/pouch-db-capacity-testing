@@ -1,0 +1,83 @@
+<html>
+  <head>
+    <title>Pouch DB Capacity Tests</title>
+    <script src="jquery-2.1.4.min.js"></script>
+    <script src="pouchdb-3.6.0.min.js"></script>
+    <style>
+      body { font-family: monospace; }
+      tbody tr:nth-child(odd) { background-color: #ccc; }
+    </style>
+  </head>
+  <body>
+    <div id="controls">
+      <button id="start" onclick="start()">Start!</button>
+      <button id="start" onclick="updateMetricsDisplay()">Force metrics update</button>
+    </div>
+
+    <div id="metrics">
+      <h2>Metrics</h2>
+      <table class="content">
+        <thead>
+          <tr><td>metric</td><td>value</td><tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="2">(No metrics yet.)</td><tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="log">
+      <h2>Log</h2>
+      <div class="content">
+        <p>&gt; loading HTML...</p>
+      </div>
+    </div>
+
+    <div id="errors">
+      <h2>Errors</h2>
+      <div class="content">
+        <p>(No errors yet.)</p>
+      </div>
+    </div>
+
+    <script>
+      // TODO instantiate pouch object
+
+      var metrics = {};
+
+      var log = function(iteration, message) {
+        if(arguments.length === 1) {
+          message = iteration; iteration = null;
+        }
+        if(iteration) message = '[' + iteration + '] ' + message;
+
+        var console = $('#log .content');
+        console.prepend('<p>&gt; ' + message + '</p>');
+
+        var kids = console.children();
+        while(kids.length > 10) kids.remove(':last');
+      };
+
+      var start = function() {
+        log('Starting tests...');
+        // TODO
+      };
+
+      var updateMetricsDisplay = function() {
+        // TODO
+        var t = $('#metrics .content tbody');
+        t.empty();
+        for(key in metrics) {
+          t.append('<tr><td>' + key + '</td><td>' + metrics[key] + '</td></tr>');
+        }
+        log('Metrics updated.');
+      };
+
+      var addErrors = function(iteration, errors) {
+        // TODO
+      };
+
+      log('Scripts loaded successfully.');
+    </script>
+  </body>
+</html>
