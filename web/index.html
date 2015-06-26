@@ -6,6 +6,7 @@
     <style>
       body { font-family: monospace; }
       tbody tr:nth-child(odd) { background-color: #ccc; }
+      #log p { margin:2px; }
     </style>
   </head>
   <body>
@@ -28,13 +29,6 @@
       </table>
     </div>
 
-    <div id="log">
-      <h2>Log</h2>
-      <div class="content">
-        <p>&gt; loading HTML...</p>
-      </div>
-    </div>
-
     <div id="errors">
       <h2>Errors</h2>
       <div class="content">
@@ -42,22 +36,31 @@
       </div>
     </div>
 
+    <div id="log">
+      <h2>Log</h2>
+      <div class="content">
+        <p>LOG&gt; loading HTML...</p>
+      </div>
+    </div>
+
     <script>
       var db = new PouchDB('test');
 
-      var metrics = {};
+      var metrics = { chars_added_this_session:0 };
 
-      var log = function(iteration, message) {
-        if(arguments.length === 1) {
-          message = iteration; iteration = null;
+      var log = function(level, scenario, message) {
+        if(arguments.length === 2) {
+          message = scenario; scenario = level; level = null;
+        } else if(arguments.length === 1) {
+          message = level; level = null;
         }
-        if(iteration) message = '[' + iteration + '] ' + message;
+        if(scenario) message = '[' + scenario + '] ' + message;
+        message = (level || 'LOG') + '&gt; ' + message;
 
         var console = $('#log .content');
-        console.prepend('<p>&gt; ' + message + '</p>');
+        console.prepend('<p>' + message + '</p>');
 
-        var kids = console.children();
-        while(kids.length > 10) kids.remove(':last');
+        while(console.children().length > 20) console.children().remove(':last');
       };
 
       var start = function() {
@@ -76,27 +79,36 @@
       };
 
       var error = function(scenario, error) {
-        // TODO
+        log('ERR', scenario, error);
+        $('#errors .content').append('<p>' + error + '</p>');
       };
 
       var fetchAllDocs = function() {
         log('Fetching all docs...');
         var doc_count = 0;
+        var fetch_start = Date.now();
         db.allDocs({ include_docs:true }, function(err, res) {
           if(err) return error('allDocs', err);
           log('Fetched docs: ' + res.total_rows);
+          metrics.doc_count = res.total_rows;
+          metrics.fetch_time = Date.now() - fetch_start;
+          updateMetricsDisplay();
         });
       };
 
       var uuid = function() {
+        log('Generating UUID...');
         // from https://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
           var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
           return v.toString(16);
         });
+        log('UUID generated.');
+        return uuid;
       };
 
       var randomString = function(length) {
+        log('Generating string of length: ' + length);
         var s = '', add;
         while(length > 0) {
           add = Math.random().toString(36)
@@ -104,13 +116,17 @@
           length -= add.length;
           s += add;
         }
+        log('String generated.');
         return s;
       };
 
       var addRandomDoc = function(len) {
+        log('Adding a random doc of len: ' + len + '...');
         db.put({ content:randomString(len), _id:uuid() }, function(err, res) {
           if(err) return error('put', err);
+          metrics.chars_added_this_session += len;
           log('Put doc of len: ' + len);
+          updateMetricsDisplay();
         });
       };
 
