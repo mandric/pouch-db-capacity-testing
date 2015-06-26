@@ -13,6 +13,7 @@
       <button onclick="start()">Start!</button>
       <button onclick="updateMetricsDisplay()">Force metrics update</button>
       <button onclick="fetchAllDocs()">Fetch all docs</button>
+      <button onclick="addRandomDoc(64)">Add a doc</button>
     </div>
 
     <div id="metrics">
@@ -84,6 +85,32 @@
         db.allDocs({ include_docs:true }, function(err, res) {
           if(err) return error('allDocs', err);
           log('Fetched docs: ' + res.total_rows);
+        });
+      };
+
+      var uuid = function() {
+        // from https://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+          return v.toString(16);
+        });
+      };
+
+      var randomString = function(length) {
+        var s = '', add;
+        while(length > 0) {
+          add = Math.random().toString(36)
+              .substring(2, 2+Math.min(10, length));
+          length -= add.length;
+          s += add;
+        }
+        return s;
+      };
+
+      var addRandomDoc = function(len) {
+        db.put({ content:randomString(len), _id:uuid() }, function(err, res) {
+          if(err) return error('put', err);
+          log('Put doc of len: ' + len);
         });
       };
 
