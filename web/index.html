@@ -10,8 +10,9 @@
   </head>
   <body>
     <div id="controls">
-      <button id="start" onclick="start()">Start!</button>
-      <button id="start" onclick="updateMetricsDisplay()">Force metrics update</button>
+      <button onclick="start()">Start!</button>
+      <button onclick="updateMetricsDisplay()">Force metrics update</button>
+      <button onclick="fetchAllDocs()">Fetch all docs</button>
     </div>
 
     <div id="metrics">
@@ -41,7 +42,7 @@
     </div>
 
     <script>
-      // TODO instantiate pouch object
+      var db = new PouchDB('test');
 
       var metrics = {};
 
@@ -73,8 +74,17 @@
         log('Metrics updated.');
       };
 
-      var addErrors = function(iteration, errors) {
+      var error = function(scenario, error) {
         // TODO
+      };
+
+      var fetchAllDocs = function() {
+        log('Fetching all docs...');
+        var doc_count = 0;
+        db.allDocs({ include_docs:true }, function(err, res) {
+          if(err) return error('allDocs', err);
+          log('Fetched docs: ' + res.total_rows);
+        });
       };
 
       log('Scripts loaded successfully.');
