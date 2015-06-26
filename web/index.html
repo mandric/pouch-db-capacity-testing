@@ -14,7 +14,21 @@
       <button onclick="start()">Start!</button>
       <button onclick="updateMetricsDisplay()">Force metrics update</button>
       <button onclick="fetchAllDocs()">Fetch all docs</button>
-      <button onclick="addRandomDoc(64)">Add a doc</button>
+      <button onclick="addRandomDoc(64, 'update metrics')">Add a doc</button>
+
+      <div>
+        Add <input id="addMultiple_count" type="text"/> docs of
+            <input id="addMultiple_size" type="text"/> bytes:
+        <button onclick="addMultiple()">Go!</button>
+        <script>
+          var addMultiple = function() {
+            var count = parseInt($('#addMultiple_count').val(), 10);
+            var size = parseInt($('#addMultiple_size').val(), 10);
+            while(count-- > 0) addRandomDoc(size);
+            updateMetricsDisplay();
+          };
+        </script>
+      </div>
     </div>
 
     <div id="metrics">
@@ -55,7 +69,7 @@
           message = level; level = null;
         }
         if(scenario) message = '[' + scenario + '] ' + message;
-        message = (level || 'LOG') + '&gt; ' + message;
+        message = new Date() + ' | ' + (level || 'LOG') + '&gt; ' + message;
 
         var console = $('#log .content');
         console.prepend('<p>' + message + '</p>');
@@ -91,9 +105,24 @@
           if(err) return error('allDocs', err);
           log('Fetched docs: ' + res.total_rows);
           metrics.doc_count = res.total_rows;
-          metrics.fetch_time = Date.now() - fetch_start;
+          record_cumulative_average('fetch', Date.now() - fetch_start);
           updateMetricsDisplay();
         });
+      };
+
+      var record_cumulative_average = function(name, latest) {
+        var meanKey = 'mean_' + name;
+        var countKey = name + '_count';
+        if(!metrics[countKey]) metrics[countKey] = 0;
+        if(!metrics[meanKey]) {
+          metrics[meanKey] = latest;
+        } else {
+          metrics[meanKey] =
+              (latest + (metrics[countKey] * metrics[meanKey])) /
+                  (metrics[countKey] + 1);
+        }
+        ++metrics[countKey];
+        metrics['last_' + name + '_time'] = latest;
       };
 
       var uuid = function() {
@@ -120,13 +149,18 @@
         return s;
       };
 
-      var addRandomDoc = function(len) {
+      var addRandomDoc = function(len, doLogging) {
         log('Adding a random doc of len: ' + len + '...');
-        db.put({ content:randomString(len), _id:uuid() }, function(err, res) {
+        var doc = { content:randomString(len), _id:uuid() };
+        var start_time = Date.now();
+        db.put(doc, function(err, res) {
           if(err) return error('put', err);
+          record_cumulative_average('put', Date.now() - start_time);
           metrics.chars_added_this_session += len;
-          log('Put doc of len: ' + len);
-          updateMetricsDisplay();
+          if(doLogging) {
+            log('Put doc of len: ' + len);
+            updateMetricsDisplay();
+          }
         });
       };
 
