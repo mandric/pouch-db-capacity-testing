@@ -16,6 +16,7 @@
       <button onclick="updateMetricsDisplay()">Force metrics update</button>
       <button onclick="fetchAllDocs()">Fetch all docs</button>
       <button onclick="addRandomDoc(64, 'update metrics')">Add a doc</button>
+      <button onclick="dropDatabase()">Destroy DB</button>
 
       <div>
         Add <input id="addMultiple_count" type="text"/> docs of
@@ -196,6 +197,14 @@
             log('Put doc of len: ' + len);
             updateMetricsDisplay();
           }
+        });
+      };
+
+      var dropDatabase = function() {
+        log('Dropping database...');
+        db.destroy(function(err, res) {
+          if(err) return error('drop', err);
+          log('Database dropped.  Please reload this page.');
         });
       };
 
