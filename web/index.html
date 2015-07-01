@@ -1,144 +1,42 @@
 <html>
   <head>
     <title>Pouch DB Capacity Tests</title>
-    <script src="jquery-2.1.4.min.js"></script>
     <script src="pouchdb-3.6.0.min.js"></script>
-    <style>
-      body { font-family: monospace; }
-      tbody tr:nth-child(odd) { background-color: #ccc; }
-      #log p { margin:2px; }
-    </style>
   </head>
   <body>
     <div id="controls">
-      <button onclick="start()">Start!</button>
-      <button onclick="stop()">Stop!</button>
       <button onclick="addRandomDoc(64)">Add another doc</button>
-      <button onclick="dropDatabase()">Destroy DB</button>
     </div>
 
-    <div id="metrics">
-      <h2>Metrics</h2>
-      <table class="content">
-        <thead>
-          <tr><td>metric</td><td>value</td><tr>
-        </thead>
-        <tbody>
-          <tr><td colspan="2">(No metrics yet.)</td><tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div id="errors">
-      <h2>Errors</h2>
-      <div class="content">
-        <p>(No errors yet.)</p>
-      </div>
-    </div>
-
-    <div id="log">
-      <h2>Log</h2>
-      <div class="content">
-        <p>LOG&gt; loading HTML...</p>
-      </div>
-    </div>
+    <div><h1>Check your console logs to see what's going on.</h1></div>
 
     <script>
-      var TRACE = false;
+      var db,
+          test = { iteration: 0, delay:100, docSize:1000 };
 
-      var db = new PouchDB('test');
-
-      var metrics = { chars_added_this_session:0 };
-
-      var log = function(level, scenario, message) {
-        if(arguments.length === 2) {
-          message = scenario; scenario = level; level = null;
-        } else if(arguments.length === 1) {
-          message = level; level = null;
-        }
-        if(scenario) message = '[' + scenario + '] ' + message;
-        message = new Date() + ' | ' + (level || 'LOG') + '&gt; ' + message;
-
-        console.log(message);
-
-        var domConsole = $('#log .content');
-        domConsole.prepend('<p>' + message + '</p>');
-
-        while(domConsole.children().length > 20) domConsole.children().remove(':last');
-      };
-
-      var test;
-      var start = function() {
-        log('Starting tests...');
-        test = test || { iteration: 0, delay:100, docSize:1000 };
-        test.running = true;
-
-        delayedIteration();
-      };
-
-      var stop = function() {
-        log('Stopping iterator...');
-        if(test && test.running) {
-          test.running = false;
-          updateMetricsDisplay();
-          setTimeout(updateMetricsDisplay, 1000);
-        }
-      }
-
-      var delayedIteration = function() {
-        updateMetricsDisplay();
-        setTimeout(iterate, test.delay);
+      var delayedIteration = function(delay) {
+        if(!delay) delay = test.delay;
+        setTimeout(iterate, delay);
       };
 
       var iterate = function() {
-        log('iterating: ' + ++test.iteration);
-
+        console.log('iterating: ' + ++test.iteration);
         addRandomDoc(test.docSize, delayedIteration);
       };
 
-      var updateMetricsDisplay = function() {
-        // TODO
-        var t = $('#metrics .content tbody');
-        t.empty();
-        for(key in metrics) {
-          t.append('<tr><td>' + key + '</td><td>' + metrics[key] + '</td></tr>');
-        }
-        log('Metrics updated.');
-      };
-
-      var error = function(scenario, error) {
-        log('ERR', scenario, error);
-        $('#errors .content').append('<p>' + error + '</p>');
-      };
-
-      var record_cumulative_average = function(name, latest) {
-        var meanKey = 'mean_' + name;
-        var countKey = name + '_count';
-        if(!metrics[countKey]) metrics[countKey] = 0;
-        if(!metrics[meanKey]) {
-          metrics[meanKey] = latest;
-        } else {
-          metrics[meanKey] =
-              (latest + (metrics[countKey] * metrics[meanKey])) /
-                  (metrics[countKey] + 1);
-        }
-        ++metrics[countKey];
-        metrics['last_' + name + '_time'] = latest;
-      };
-
       var uuid = function() {
-        if(TRACE) log('Generating UUID...');
+        console.log('generating uuid...');
         // from https://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
         var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
           var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
           return v.toString(16);
         });
-        if(TRACE) log('UUID generated.');
+        console.log('uuid generated.');
         return uuid;
       };
 
       var randomString = function(length) {
-        if(TRACE) log('Generating string of length: ' + length);
+        console.log('generating string of length: ' + length);
         var s = '', add;
         while(length > 0) {
           add = Math.random().toString(36)
@@ -146,31 +44,30 @@
           length -= add.length;
           s += add;
         }
-        if(TRACE) log('String generated.');
+        console.log('string generated.');
         return s;
       };
 
       var addRandomDoc = function(len, successCallback) {
-        log('Adding a random doc of len: ' + len + '...');
+        console.log('adding a random doc of len: ' + len + '...');
         var doc = { content:randomString(len), _id:uuid() };
-        var start_time = Date.now();
         db.put(doc, function(err, res) {
-          if(err) return error('put', err);
-          record_cumulative_average('put', Date.now() - start_time);
-          metrics.chars_added_this_session += len;
+          if(err) return console.log('[put]' + err);
           successCallback();
         });
       };
 
-      var dropDatabase = function() {
-        log('Dropping database...');
-        db.destroy(function(err, res) {
-          if(err) return error('drop', err);
-          log('Database dropped.  Please reload this page.');
-        });
-      };
+      console.log('dropping database...');
+      db = new PouchDB('test');
+      db.destroy(function(err, res) {
+        if(err) return console.log('[drop]' + err);
+        console.log('database dropped.  Starting puts...');
 
-      log('Scripts loaded successfully.');
+        db = new PouchDB('test');
+        delayedIteration(30000);
+      });
+
+      console.log('scripts loaded successfully.');
     </script>
   </body>
 </html>
