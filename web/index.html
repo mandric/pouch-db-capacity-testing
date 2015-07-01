@@ -13,24 +13,8 @@
     <div id="controls">
       <button onclick="start()">Start!</button>
       <button onclick="stop()">Stop!</button>
-      <button onclick="updateMetricsDisplay()">Force metrics update</button>
-      <button onclick="fetchAllDocs()">Fetch all docs</button>
-      <button onclick="addRandomDoc(64, 'update metrics')">Add a doc</button>
+      <button onclick="addRandomDoc(64)">Add another doc</button>
       <button onclick="dropDatabase()">Destroy DB</button>
-
-      <div>
-        Add <input id="addMultiple_count" type="text"/> docs of
-            <input id="addMultiple_size" type="text"/> bytes:
-        <button onclick="addMultiple()">Go!</button>
-        <script>
-          var addMultiple = function() {
-            var count = parseInt($('#addMultiple_count').val(), 10);
-            var size = parseInt($('#addMultiple_size').val(), 10);
-            while(count-- > 0) addRandomDoc(size);
-            updateMetricsDisplay();
-          };
-        </script>
-      </div>
     </div>
 
     <div id="metrics">
@@ -75,19 +59,21 @@
         if(scenario) message = '[' + scenario + '] ' + message;
         message = new Date() + ' | ' + (level || 'LOG') + '&gt; ' + message;
 
-        var console = $('#log .content');
-        console.prepend('<p>' + message + '</p>');
+        console.log(message);
 
-        while(console.children().length > 20) console.children().remove(':last');
+        var domConsole = $('#log .content');
+        domConsole.prepend('<p>' + message + '</p>');
+
+        while(domConsole.children().length > 20) domConsole.children().remove(':last');
       };
 
       var test;
       var start = function() {
         log('Starting tests...');
-        test = test || { iteration: 0, delay:100, minSize:1000, maxSize:10000 };
+        test = test || { iteration: 0, delay:100, docSize:1000 };
         test.running = true;
 
-        setTimeout(iterate, test.delay);
+        delayedIteration();
       };
 
       var stop = function() {
@@ -97,24 +83,17 @@
           updateMetricsDisplay();
           setTimeout(updateMetricsDisplay, 1000);
         }
+      }
+
+      var delayedIteration = function() {
+        updateMetricsDisplay();
+        setTimeout(iterate, test.delay);
       };
 
       var iterate = function() {
         log('iterating: ' + ++test.iteration);
-        var size;
 
-        for(size=test.minSize; size<=test.maxSize; size<<=1) {
-          addRandomDoc(size);
-        }
-
-        log('iteration complete.');
-        updateMetricsDisplay();
-
-        if(test.iteration % 100 === 0) {
-          stop();
-        }
-
-        if(test.running) setTimeout(iterate, test.delay);
+        addRandomDoc(test.docSize, delayedIteration);
       };
 
       var updateMetricsDisplay = function() {
@@ -130,19 +109,6 @@
       var error = function(scenario, error) {
         log('ERR', scenario, error);
         $('#errors .content').append('<p>' + error + '</p>');
-      };
-
-      var fetchAllDocs = function() {
-        log('Fetching all docs...');
-        var doc_count = 0;
-        var fetch_start = Date.now();
-        db.allDocs({ include_docs:true }, function(err, res) {
-          if(err) return error('allDocs', err);
-          log('Fetched docs: ' + res.total_rows);
-          metrics.doc_count = res.total_rows;
-          record_cumulative_average('fetch', Date.now() - fetch_start);
-          updateMetricsDisplay();
-        });
       };
 
       var record_cumulative_average = function(name, latest) {
@@ -184,18 +150,15 @@
         return s;
       };
 
-      var addRandomDoc = function(len, doLogging) {
-        if(doLogging) log('Adding a random doc of len: ' + len + '...');
+      var addRandomDoc = function(len, successCallback) {
+        log('Adding a random doc of len: ' + len + '...');
         var doc = { content:randomString(len), _id:uuid() };
         var start_time = Date.now();
         db.put(doc, function(err, res) {
           if(err) return error('put', err);
           record_cumulative_average('put', Date.now() - start_time);
           metrics.chars_added_this_session += len;
-          if(doLogging) {
-            log('Put doc of len: ' + len);
-            updateMetricsDisplay();
-          }
+          successCallback();
         });
       };
 
