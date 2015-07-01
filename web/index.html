@@ -84,7 +84,7 @@
       var test;
       var start = function() {
         log('Starting tests...');
-        test = test || { iteration: 0, delay:1000 };
+        test = test || { iteration: 0, delay:100, minSize:1000, maxSize:10000 };
         test.running = true;
 
         setTimeout(iterate, test.delay);
@@ -101,11 +101,10 @@
 
       var iterate = function() {
         log('iterating: ' + ++test.iteration);
-        var size, count;
+        var size;
 
-        for(size = 1; size < 1000; size <<= 1) {
-          count = 10;
-          while(count-- > 0) addRandomDoc(size); 
+        for(size=test.minSize; size<=test.maxSize; size<<=1) {
+          addRandomDoc(size);
         }
 
         log('iteration complete.');
