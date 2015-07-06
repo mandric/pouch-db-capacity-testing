@@ -18,6 +18,11 @@
       <button onclick="addRandomDoc(64, 'update metrics')">Add a doc</button>
       <button onclick="dropDatabase()">Destroy DB</button>
       <button onclick="goToStage(0)">Start fetch tests</button>
+      <button onclick="goToNextStage()">Force go to next stage</button>
+
+      <div>
+        Adapter <input id="adapter" type="text"/>
+      </div>
 
       <div>
         Add <input id="addMultiple_count" type="text"/> docs of
@@ -87,11 +92,13 @@
         while(console.children().length > 20) console.children().remove(':last');
       };
 
+      var adapter = getUrlParam('adapter');
       var db = getUrlParam('adapter') ?
-          new PouchDB('test', { adapter:getUrlParam('adapter') }) :
+          new PouchDB('test', { adapter:adapter }) :
           new PouchDB('test');
       log('Created db with adapter: ' + db.adapter);
 
+      $('#adapter').val(db.adapter);
       var metrics = { adapter:db.adapter, chars_added_this_session:0 };
 
       var test;
@@ -227,7 +234,8 @@
         var url = window.location.origin +
             window.location.pathname +
             '?stage=' + stage;
-        if(getUrlParam('adapter')) url += '&adapter=' + getUrlParam('adapter');
+        var adapter = $('#adapter').val();
+        if(adapter) url += '&adapter=' + adapter;
         window.location = url;
       }
       var goToNextStage = function() {
@@ -262,7 +270,7 @@
           });
           break;
         case 2:
-          var TOTAL_DOC_COUNT = 500;
+          var TOTAL_DOC_COUNT = 100;
           // add TOTAL_DOC_COUNT docs of 1k
           var count = 0;
           var addIf = function() {
@@ -274,6 +282,7 @@
               log('Docs created; rebuilding view.');
               db.query('by_content', { limit:0 }, function(err, res) {
                 if(err) return error('Building view', err);
+                log('View built.  Proceeding to next stage...');
                 goToNextStage();
               });
             }
@@ -286,7 +295,7 @@
           var remainingFullViewRepeats = 10,
           fullViewFetch = function() {
             log('Fetching each page of by_content view, 10 records at a time...');
-            var step=10, total=1000, skip=0,
+            var step=10, total=TOTAL_DOC_COUNT, skip=0,
             fetch = function() {
               var fetch_start = Date.now();
               db.query('by_content', { limit:step, skip:skip, include_docs:true }, function(err, res) {
