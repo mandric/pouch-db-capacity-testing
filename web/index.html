@@ -53,7 +53,8 @@
         var doc = { content:randomString(len), _id:uuid() };
         db.put(doc, function(err, res) {
           if(err) return console.log('[put]' + err);
-          successCallback();
+          console.log('Document add was successful.');
+          if(successCallback) successCallback();
         });
       };
 
