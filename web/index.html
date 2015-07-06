@@ -262,10 +262,11 @@
           });
           break;
         case 2:
-          // add 1000 docs of 1k
+          var TOTAL_DOC_COUNT = 500;
+          // add TOTAL_DOC_COUNT docs of 1k
           var count = 0;
           var addIf = function() {
-            if(count++<1000) {
+            if(count++<TOTAL_DOC_COUNT) {
               setTimeout(function() {
                 addRandomDoc(1024, true, addIf);
               }, 10);
