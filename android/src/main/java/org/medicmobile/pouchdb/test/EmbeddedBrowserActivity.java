@@ -17,6 +17,11 @@ public class EmbeddedBrowserActivity extends Activity {
 
 		WebView container = (WebView) findViewById(R.id.WebViewContainer);
 		container.getSettings().setJavaScriptEnabled(true);
+		container.setWebViewClient(new WebViewClient() {
+			public boolean shouldOverrideUrlLoading(WebView v, String url) {
+				return false;
+			}
+		});
 
 		final String url = TEST_URL;
 		if(DEBUG) log("Pointing browser to %s", url);
