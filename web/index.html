@@ -303,7 +303,24 @@
           };
           fullViewFetch();
 
-          // TODO test fetching individual docs
+          // test fetching individual docs
+          (function() {
+            db.query(function(doc) { emit(Math.random()); }, function(err, res) {
+              log(JSON.stringify(res));
+              var remaining = res.rows;
+              fetch = function() {
+                var id = remaining.pop().id;
+                var fetch_start = Date.now();
+                db.get(id, { include_docs:true }, function(err, res) {
+                  if(err) return error('Fetching random doc', err);
+                  record_cumulative_average('fetch_random', Date.now() - fetch_start);
+                  if((remaining.length % 100) === 0) updateMetricsDisplay();
+                  if(remaining.length > 0) setTimeout(fetch, 10);
+                });
+              };
+              fetch();
+            });
+          }());
           break;
       };
     </script>
