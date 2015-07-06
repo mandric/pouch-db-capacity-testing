@@ -275,7 +275,29 @@
           addIf();
           break;
         case 3:
-          // TODO test fetching from view
+          // test fetching from view
+          // fetch each page of the by_content view, and repeat 100 times
+          var remainingFullViewRepeats = 10,
+          fullViewFetch = function() {
+            log('Fetching each page of by_content view, 10 records at a time...');
+            var step=10, total=1000, skip=0,
+            fetch = function() {
+              var fetch_start = Date.now();
+              db.query('by_content', { limit:step, skip:skip }, function(err, res) {
+                if(err) return error('fetching from view', err);
+                record_cumulative_average('fetch_from_view', Date.now() - fetch_start);
+                skip += step;
+                if(skip < total) setTimeout(fetch, 10);
+                else setTimeout(function() {
+                  updateMetricsDisplay();
+                  if(--remainingFullViewRepeats > 0) fullViewFetch();
+                }, 100);
+              });
+            };
+            fetch();
+          };
+          fullViewFetch();
+
           // TODO test fetching individual docs
           break;
       };
