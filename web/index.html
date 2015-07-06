@@ -283,7 +283,7 @@
             var step=10, total=1000, skip=0,
             fetch = function() {
               var fetch_start = Date.now();
-              db.query('by_content', { limit:step, skip:skip }, function(err, res) {
+              db.query('by_content', { limit:step, skip:skip, include_docs:true }, function(err, res) {
                 if(err) return error('fetching from view', err);
                 record_cumulative_average('fetch_from_view', Date.now() - fetch_start);
                 skip += step;
