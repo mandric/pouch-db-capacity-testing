@@ -17,6 +17,7 @@
       <button onclick="fetchAllDocs()">Fetch all docs</button>
       <button onclick="addRandomDoc(64, 'update metrics')">Add a doc</button>
       <button onclick="dropDatabase()">Destroy DB</button>
+      <button onclick="goToStage(0)">Start fetch tests</button>
 
       <div>
         Add <input id="addMultiple_count" type="text"/> docs of
@@ -81,6 +82,15 @@
         while(console.children().length > 20) console.children().remove(':last');
       };
 
+      var getUrlParam = function(key) {
+          var i, pairs, val;
+          pairs = window.location.search.substring(1).split('&');
+          for(i=pairs.length-1; i>=0; --i) {
+              val = pairs[i].split('=');
+              if(val[0] === key) return val[1];
+          }
+      };
+
       var test;
       var start = function() {
         log('Starting tests...');
@@ -129,7 +139,7 @@
 
       var error = function(scenario, error) {
         log('ERR', scenario, error);
-        $('#errors .content').append('<p>' + error + '</p>');
+        $('#errors .content').append('<p>[' + scenario + '] ' + error + '</p>');
       };
 
       var fetchAllDocs = function() {
@@ -184,7 +194,7 @@
         return s;
       };
 
-      var addRandomDoc = function(len, doLogging) {
+      var addRandomDoc = function(len, doLogging, successCallback) {
         if(doLogging) log('Adding a random doc of len: ' + len + '...');
         var doc = { content:randomString(len), _id:uuid() };
         var start_time = Date.now();
@@ -196,18 +206,79 @@
             log('Put doc of len: ' + len);
             updateMetricsDisplay();
           }
+          if(successCallback) successCallback();
         });
       };
 
-      var dropDatabase = function() {
+      var dropDatabase = function(successCallback) {
         log('Dropping database...');
         db.destroy(function(err, res) {
           if(err) return error('drop', err);
           log('Database dropped.  Please reload this page.');
+          if(successCallback) successCallback();
         });
       };
 
+      var goToStage = function(stage) {
+        log('goToStage :: stage=' + stage);
+        window.location = window.location.origin +
+            window.location.pathname +
+            '?stage=' + stage;
+      }
+      var goToNextStage = function() {
+        var currentStage = parseInt(getUrlParam('stage'), 10);
+        log('goToNextStage :: currentStage=' + currentStage);
+        goToStage(currentStage + 1);
+      }
+
       log('Scripts loaded successfully.');
+
+      switch(parseInt(getUrlParam('stage'), 10)) {
+        case 0:
+          // drop the db
+          dropDatabase(goToNextStage);
+          break;
+        case 1:
+          // TODO define the views
+          db.put({
+            _id:'_design/by_content',
+            views: {
+              by_content: {
+                map:function(doc) { emit(doc.content); }.toString()
+              }
+            }
+          }, function(err, res) {
+            if(err) return error('Creating ddoc', err);
+            log('Ddoc created.  Querying to build view...');
+            db.query('by_content', { limit:0 }, function(err, res) {
+              if(err) return error('Building view', err);
+              goToNextStage();
+            });
+          });
+          break;
+        case 2:
+          // add 1000 docs of 1k
+          var count = 0;
+          var addIf = function() {
+            if(count++<1000) {
+              setTimeout(function() {
+                addRandomDoc(1024, true, addIf);
+              }, 10);
+            } else {
+              log('Docs created; rebuilding view.');
+              db.query('by_content', { limit:0 }, function(err, res) {
+                if(err) return error('Building view', err);
+                goToNextStage();
+              });
+            }
+          };
+          addIf();
+          break;
+        case 3:
+          // TODO test fetching from view
+          // TODO test fetching individual docs
+          break;
+      };
     </script>
   </body>
 </html>
