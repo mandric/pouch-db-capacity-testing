@@ -63,9 +63,14 @@
     <script>
       var TRACE = false;
 
-      var db = new PouchDB('test');
-
-      var metrics = { chars_added_this_session:0 };
+      var getUrlParam = function(key) {
+          var i, pairs, val;
+          pairs = window.location.search.substring(1).split('&');
+          for(i=pairs.length-1; i>=0; --i) {
+              val = pairs[i].split('=');
+              if(val[0] === key) return val[1];
+          }
+      };
 
       var log = function(level, scenario, message) {
         if(arguments.length === 2) {
@@ -82,14 +87,12 @@
         while(console.children().length > 20) console.children().remove(':last');
       };
 
-      var getUrlParam = function(key) {
-          var i, pairs, val;
-          pairs = window.location.search.substring(1).split('&');
-          for(i=pairs.length-1; i>=0; --i) {
-              val = pairs[i].split('=');
-              if(val[0] === key) return val[1];
-          }
-      };
+      var db = getUrlParam('adapter') ?
+          new PouchDB('test', { adapter:getUrlParam('adapter') }) :
+          new PouchDB('test');
+      log('Created db with adapter: ' + db.adapter);
+
+      var metrics = { chars_added_this_session:0 };
 
       var test;
       var start = function() {
@@ -221,9 +224,11 @@
 
       var goToStage = function(stage) {
         log('goToStage :: stage=' + stage);
-        window.location = window.location.origin +
+        var url = window.location.origin +
             window.location.pathname +
             '?stage=' + stage;
+        if(getUrlParam('adapter')) url += '&adapter=' + getUrlParam('adapter');
+        window.location = url;
       }
       var goToNextStage = function() {
         var currentStage = parseInt(getUrlParam('stage'), 10);
