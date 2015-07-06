@@ -92,7 +92,7 @@
           new PouchDB('test');
       log('Created db with adapter: ' + db.adapter);
 
-      var metrics = { chars_added_this_session:0 };
+      var metrics = { adapter:db.adapter, chars_added_this_session:0 };
 
       var test;
       var start = function() {
