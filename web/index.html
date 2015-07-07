@@ -93,6 +93,7 @@
       };
 
       var adapter = getUrlParam('adapter');
+      log('Attempting to create pouch for adapter: "' + adapter + '"');
       var db = getUrlParam('adapter') ?
           new PouchDB('test', { adapter:adapter }) :
           new PouchDB('test');
