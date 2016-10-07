@@ -1,3 +1,6 @@
+/*
+ * window.location = 'https://alxndrsn.github.io/pouch-db-capacity-testing/web/';
+ */
 (function(adapter) {
 var db, destroy;
 var initDB = function(adapter) {
